@@ -34,7 +34,7 @@ rStream
 		isFirst = false;
 	}))
 	.on( "end", () => { wStream.write( "]" ) })
-	.on( "error", () => { wStream.write( "]" ) })
+	.on( "error", () => { wStream.write( "]" ); rStream.close() })
 	.on( "close", () => { console.log( "Finished..." ) });
 
 console.log( "Started..." );
