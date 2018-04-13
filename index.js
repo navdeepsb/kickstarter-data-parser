@@ -9,7 +9,9 @@
 const fs = require( "fs" );
 const es = require( "event-stream" );
 const JSONStream = require( "JSONStream" );
-const SRC = "./data/kickstarter-main-2018-01.json";
+const SRC = "./data/final-data-evan.json"; // file name relative to this file
+const LIMIT = 2000; // how many first-n records to fetch before aborting (-1 == no limit)
+const FILE_DESCRIPTOR = "*" // `null` for a JSON stream, `"*"` for a JSON array
 
 
 // ...
@@ -22,43 +24,38 @@ wStream
 	.write( "[" );
 
 rStream
-	.pipe( JSONStream.parse( null ) ) // `null` if the file is newline-delimited, `*` is the file is a valid json
+	.pipe( JSONStream.parse( FILE_DESCRIPTOR ) )
 	.pipe( es.mapSync( ( d ) => {
+		if( num == LIMIT ) {
+			throw new Error();
+		}
 		console.log( `Processed datum #${ ++num }` );
 		wStream.write( ( isFirst ? "" : "," ) + JSON.stringify({
-			id: d.data.id,
-			name: d.data.name,
-			slug: d.data.slug,
-			blurb: d.data.blurb,
-			goal: d.data.goal,
-			pledged: d.data.pledged,
-			state: d.data.state,
-			curr: d.data.currency,
-			current_curr: d.data.current_currency,
-			created_at: d.data.created_at,
-			launched_at: d.data.launched_at,
-			deadline: d.data.deadline,
-			spotlight: d.data.spotlight,
-			staff_pick: d.data.staff_pick,
-			is_starrable: d.data.is_starrable,
-			backers_count: d.data.backers_count,
-			profile_status: d.data.profile.state,
-			category: d.data.category.name,
-			photo: d.data.photo.full,
-			location: {
-				name: ( d.data.location || {} ).name || null,
-				state: ( d.data.location || {} ).state || null,
-				country: ( d.data.location || {} ).country || null
-			},
-			creator: {
-				id: d.data.creator.id,
-				name: d.data.creator.name,
-				avatar: d.data.creator.avatar.small
-			}
-		}));
+			"id": d.id,
+			"name": d.name,
+			"state": d.state,
+			"category_name": d.category_name,
+			"category_id": d.category_id,
+			"location_state": d.location_state,
+			"create_date": d.create_date,
+			"launch_date": d.launch_date,
+			"state_change": d.state_change,
+			"deadline_at": d.deadline_at,
+			"location_id": d.location_id,
+			"goal": d.goal,
+			"pledged": d.pledged,
+			"perc_pledged": ( Math.round( d.pledged / d.goal * 10000  ) / 10000 ) * 100,
+			"backers_count": d.backers_count,
+			"launched_to_deadline_days": d.launched_to_deadline_days,
+			"blurb": d.blurb,
+			"score": d.score,
+			"creator_id": d.creator_id,
+			"slug": d.slug
+		}) );
 		isFirst = false;
 	}))
 	.on( "end", () => { wStream.write( "]" ) })
+	.on( "error", () => { wStream.write( "]" ); rStream.close() })
 	.on( "close", () => { console.log( "Finished..." ) });
 
 console.log( "Started..." );
