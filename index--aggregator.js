@@ -9,10 +9,10 @@
 const fs = require( "fs" );
 const es = require( "event-stream" );
 const JSONStream = require( "JSONStream" );
-const SRC = "./data/final-data-evan.json"; // file name relative to this file
+const SRC = "./data/final-data-evan-stream.min.json"; // file name relative to this file
 const LIMIT = -1; // how many first-n records to fetch before aborting (-1 == no limit)
 const FILE_DESCRIPTOR = "*" // `null` for a JSON stream, `"*"` for a JSON array
-const KEY_TO_AGGR = "category_name";
+const KEY_TO_AGGR = "master_category_name";
 
 
 // ...
@@ -27,7 +27,7 @@ rStream
 		if( num == LIMIT ) {
 			throw new Error();
 		}
-		console.log( `Processed datum #${ ++num }` );
+		// console.log( `Processed datum #${ ++num }` );
 
 		val = d[ KEY_TO_AGGR ];
 		if( !dict.hasOwnProperty( val ) ) {

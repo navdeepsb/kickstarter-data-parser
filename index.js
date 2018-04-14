@@ -9,9 +9,14 @@
 const fs = require( "fs" );
 const es = require( "event-stream" );
 const JSONStream = require( "JSONStream" );
-const SRC = "./data/final-data-evan.json"; // file name relative to this file
-const LIMIT = 2000; // how many first-n records to fetch before aborting (-1 == no limit)
-const FILE_DESCRIPTOR = "*" // `null` for a JSON stream, `"*"` for a JSON array
+
+
+// ...
+// Modify below attributes to change the output...
+const SRC = "./data/final-data-evan-stream.json"; // file name relative to this file
+const LIMIT = -1; // how many first-n records to fetch before aborting (-1 == no limit)
+const FILE_DESCRIPTOR = null; // `null` for a JSON stream, `"*"` for a JSON array
+const OUTPUT_AS_JSON_STREAM = false; // #selfdescriptivevariablename
 
 
 // ...
@@ -20,8 +25,28 @@ let isFirst = true;
 let rStream = fs.createReadStream( SRC, { encoding: "utf-8" } );
 let wStream = fs.createWriteStream( SRC.split( ".json" )[ 0 ] + ".min.json", { encoding: "utf-8" } );
 
+
+// ...
+const masterCategoryMap = JSON.parse( fs.readFileSync( "./categories.map.json", "utf-8" ) );
+const getMasterCategory = ( cat ) => {
+	let masterCat = null;
+
+	try {
+		Object.keys( masterCategoryMap ).forEach( ( k ) => {
+			if( masterCategoryMap[ k ].indexOf( cat ) >= 0 ) {
+				masterCat = k;
+				throw new Error();
+			}
+		});
+	} catch( ex ) {}
+
+	return masterCat;
+};
+
+
+// ...
 wStream
-	.write( "[" );
+	.write( OUTPUT_AS_JSON_STREAM ? "" : "[" );
 
 rStream
 	.pipe( JSONStream.parse( FILE_DESCRIPTOR ) )
@@ -30,11 +55,12 @@ rStream
 			throw new Error();
 		}
 		console.log( `Processed datum #${ ++num }` );
-		wStream.write( ( isFirst ? "" : "," ) + JSON.stringify({
+		wStream.write( ( isFirst ? "" : OUTPUT_AS_JSON_STREAM ? "\n" : "," ) + JSON.stringify({
 			"id": d.id,
 			"name": d.name,
 			"state": d.state,
 			"category_name": d.category_name,
+			"master_category_name": d.master_category_name || getMasterCategory( d.category_name ),
 			"category_id": d.category_id,
 			"location_state": d.location_state,
 			"create_date": d.create_date,
@@ -54,8 +80,8 @@ rStream
 		}) );
 		isFirst = false;
 	}))
-	.on( "end", () => { wStream.write( "]" ) })
-	.on( "error", () => { wStream.write( "]" ); rStream.close() })
+	.on( "end",   () => { wStream.write( OUTPUT_AS_JSON_STREAM ? "" : "]" ) })
+	.on( "error", () => { wStream.write( OUTPUT_AS_JSON_STREAM ? "" : "]" ); rStream.close() })
 	.on( "close", () => { console.log( "Finished..." ) });
 
 console.log( "Started..." );
